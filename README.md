@@ -121,14 +121,17 @@ overwritten. If the database is empty, these are created.
 
 | Username | User ID | Password | Role |
 |---|---|---|---|
-| Mysuru Station Master | TGSMYS | Mysuru123! | SS, Mysuru |
-| Mandya Station Master | TGSMYA | Mandya123! | SS, Mandya |
-| Bengaluru Station Master | TGSSBC | Bengaluru123! | SS, Bengaluru |
+| Mysuru Station Master | TGSMYS | Mysuru123! | SS, Mysuru (only SS) |
+| Traffic Inspector | TGSTI | Traffic123! | TI, section-1 (read-only) |
 | Senior DOM | TGSDOM | DOM123! | DOM, all stations |
 
+Exactly these 3 accounts (Nandan's structure, 2026-10-31) — there are
+no Mandya/Bengaluru SS accounts anymore. The DOM can create further
+accounts in the dashboard (Create account panel) if ever needed.
 Set `SEED_DEMO_USERS=false` in `.env` to skip seeding entirely.
-A TI account is created by the DOM in the dashboard (Create account
-panel, department TrafficInspector, section-1).
+Note: seeding runs only when the users collection is EMPTY — an
+existing database (e.g. his local smart-train-db) keeps its old
+accounts until they are deleted there.
 
 ### No-hardware demo (optional, before the board test)
 ```

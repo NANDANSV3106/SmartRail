@@ -79,16 +79,17 @@ deviceController.setSerial(serial);
 async function seed() {
   if (process.env.SEED_DEMO_USERS === 'false') return;
   if ((await store.countUsers()) === 0) {
+    // Exactly 3 accounts (Nandan's structure, 2026-10-31):
+    // one SS (Mysuru), one TI, one DOM. No other station SS accounts.
     const users = [
       { username: 'Mysuru Station Master', user_id: 'TGSMYS', password: 'Mysuru123!', department: 'StationMaster', station: 'Mysuru', designation: 'SS', sectionId: 'section-1' },
-      { username: 'Mandya Station Master', user_id: 'TGSMYA', password: 'Mandya123!', department: 'StationMaster', station: 'Mandya', designation: 'SS', sectionId: 'section-1' },
-      { username: 'Bengaluru Station Master', user_id: 'TGSSBC', password: 'Bengaluru123!', department: 'StationMaster', station: 'Bengaluru', designation: 'SS', sectionId: 'section-1' },
+      { username: 'Traffic Inspector', user_id: 'TGSTI', password: 'Traffic123!', department: 'TrafficInspector', station: '', designation: 'TI', sectionId: 'section-1' },
       { username: 'Senior DOM', user_id: 'TGSDOM', password: 'DOM123!', department: 'RailwayAdmin', station: '', designation: 'DOM' },
     ];
     for (const u of users) {
       await store.createUser({ ...u, password: await bcrypt.hash(u.password, 10) });
     }
-    console.log('[auth] Seeded users from the screenshots (TGSMYS / TGSMYA / TGSSBC / TGSDOM) — CHANGE THESE PASSWORDS before hosting.');
+    console.log('[auth] Seeded users (TGSMYS = Mysuru SS / TGSTI = TI / TGSDOM = DOM) — CHANGE THESE PASSWORDS before real use.');
   }
   if ((await store.countTrains()) === 0) {
     await store.createTrain({ trainNumber: '12639', trainName: 'Brindavan SF Express', fromStation: 'MGR Chennai Central', toStation: 'KSR Bengaluru' });
