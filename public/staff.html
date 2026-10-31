@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartRail — Staff Portal</title>
+<!-- Hackathon fix (2026-10-30, later): after login the station/name is shown
+     ONCE only (hero chip) — header is role chip + user ID, hero title is
+     "Track Safety Command Centre", incidents empty state reads "Track Clear".
+     Redesigned UI (2026-10-30): full-screen train photo on the login page
+     (the background from Nandan's ODNMS login page, bundled locally as
+     train-bg.jpg so there is NO external image dependency), a glass login
+     card, a sticky dashboard header, a train hero banner after login, and
+     upgraded stat / incident / panel cards. The Indian Railways logo
+     (logo.jpg) is still shown as a clean circle. Login hero reads
+     "Welcome to ODNMS — Obstacle Detection & Notification Management
+     System — Ensuring railway safety through real-time AI monitoring."
+     At Nandan's request the login page carries NO helper text (no user-id
+     example line, no README/first-run note, no collections list), and the
+     password show/hide control is an eye icon. Login is by user_id
+     (TGSMYS / TGSMYA / TGSSBC / TGSDOM in the seed data) — NOT by email.
+     Demo passwords are NOT printed on this page; they are in README.md. -->
+<style>
+  :root{
+    --rail-red:#b11f21; --rail-red-2:#e03336; --gold:#d4af37; --gold-2:#f0c95c;
+    --bg-dark:#0b0d12; --card-dark:#171c28; --card-2:#1e2534;
+    --border-dark:#333b4d; --text-light:#eef1f6; --text-muted:#9aa4b5;
+    --green:#22a355; --shadow:0 18px 45px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:
+      radial-gradient(900px 480px at 85% -10%, rgba(212,175,55,.10), transparent 60%),
+      radial-gradient(800px 420px at -10% 110%, rgba(177,31,33,.12), transparent 60%),
+      var(--bg-dark);
+    color:var(--text-light);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;margin:0;min-height:100vh}
+  a{color:#93c5fd}
+  .hidden{display:none !important}
+  .text-gold{color:var(--gold)}
+  .muted{color:var(--text-muted)} .ok{color:#4ade80;font-weight:700} .bad{color:#f87171;font-weight:700}
+  .card{background:linear-gradient(180deg,var(--card-2),var(--card-dark));border:1px solid var(--border-dark);border-radius:1rem;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .form-input{width:100%;padding:.8rem 1rem;border-radius:.65rem;background:rgba(255,255,255,.06);border:1px solid var(--border-dark);color:var(--text-light);font-size:.95rem;transition:border-color .15s, box-shadow .15s}
+  .form-input::placeholder{color:#6b7280}
+  .form-input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 3px rgba(212,175,55,.22)}
+  select.form-input option{background:var(--card-dark)}
+  .btn{padding:.7rem 1.15rem;border-radius:.65rem;font-weight:700;cursor:pointer;border:0;display:inline-flex;gap:.5rem;align-items:center;justify-content:center;transition:transform .15s, box-shadow .15s, filter .15s;font-size:.92rem}
+  .btn:hover{transform:translateY(-1px);filter:brightness(1.07)}
+  .btn:active{transform:translateY(0)}
+  .btn-primary{background:linear-gradient(135deg,var(--gold-2),var(--gold));color:#191104;box-shadow:0 6px 18px rgba(212,175,55,.28)}
+  .btn-secondary{background:#2a3142;color:var(--text-light);border:1px solid var(--border-dark)}
+  .btn-danger{background:linear-gradient(135deg,var(--rail-red-2),var(--rail-red));color:#fff}
+  .btn-green{background:linear-gradient(135deg,#2fbf71,var(--green));color:#fff}
+  .logo{border-radius:50%;object-fit:cover;background:#fff;border:3px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px rgba(212,175,55,.55),0 10px 26px rgba(0,0,0,.45);flex:none}
+
+  /* ---------- LOGIN ---------- */
+  .login-view{width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.25rem;
+    background-image:linear-gradient(100deg, rgba(8,9,14,.86) 20%, rgba(8,9,14,.62) 55%, rgba(8,9,14,.82)), url('train-bg.jpg');
+    background-size:cover;background-position:center}
+  .login-shell{display:grid;grid-template-columns:1.15fr .85fr;gap:2.5rem;width:100%;max-width:1120px;align-items:center}
+  .login-hero{padding:1rem .5rem}
+  .login-hero h1{font-size:3rem;line-height:1.05;margin:1.1rem 0 .4rem;font-weight:800;letter-spacing:.2px}
+  .login-hero .tagline{font-size:1.05rem;color:#d7dce5;max-width:30rem;line-height:1.55;margin:.35rem 0 0}
+  .login-hero .sysname{font-size:1.35rem;font-weight:700;color:#fff;max-width:32rem;line-height:1.4;margin:1.15rem 0 0}
+  #pwToggle:hover{color:var(--gold-2) !important}
+  .gold-bar{height:5px;width:5.5rem;background:linear-gradient(90deg,var(--rail-red),var(--gold));border-radius:99px}
+  .chips{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1.4rem}
+  .chip{padding:.45rem .85rem;border-radius:999px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px);font-size:.82rem;font-weight:600}
+  .chip b{color:var(--gold-2)}
+  .login-card{background:rgba(19,23,33,.82);backdrop-filter:blur(16px);border:1px solid rgba(212,175,55,.38);border-radius:1.4rem;padding:2.4rem;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .login-card::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--rail-red),var(--gold),var(--rail-red))}
+  .login-card h2{font-size:1.55rem}
+  @media (max-width:860px){.login-shell{grid-template-columns:1fr;max-width:440px;gap:1.2rem}.login-hero{text-align:center;padding:0}.login-hero h1{font-size:2.2rem}.login-hero .tagline{margin:0 auto}.gold-bar{margin:0 auto}.chips{justify-content:center}.login-hero .logo{margin:0 auto}.login-card{padding:1.8rem}}
+
+  /* ---------- DASHBOARD ---------- */
+  .dashboard{width:100%;max-width:84rem;margin:0 auto;padding:0 1rem 2rem}
+  .dash-header{position:sticky;top:0;z-index:40;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;
+    padding:.85rem 1rem;margin:0 -1rem 1.25rem;background:rgba(11,13,18,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-dark)}
+  .hero{border-radius:1.25rem;padding:1.9rem;border:1px solid rgba(212,175,55,.35);box-shadow:var(--shadow);
+    background-image:linear-gradient(95deg, rgba(10,11,16,.94) 30%, rgba(10,11,16,.55)), url('train-bg.jpg');
+    background-size:cover;background-position:center 62%;display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;justify-content:space-between;margin-bottom:1.5rem}
+  .hero h2{margin:0;font-size:1.7rem;font-weight:800}
+  .live-pill{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem .9rem;border-radius:999px;background:rgba(20,83,45,.55);border:1px solid rgba(74,222,128,.5);font-weight:700;font-size:.85rem}
+  .live-dot{width:.6rem;height:.6rem;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:pulse 1.8s infinite}
+  @keyframes pulse{70%{box-shadow:0 0 0 9px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+  /* Hackathon polish (2026-10-30 fix): station / name shown ONCE, in the hero chip only */
+  .role-chip{display:inline-flex;align-items:center;padding:.22rem .6rem;border-radius:999px;background:rgba(212,175,55,.14);border:1px solid rgba(212,175,55,.45);color:var(--gold-2);font-size:.76rem;font-weight:800;letter-spacing:.04em}
+  .id-chip{display:inline-flex;align-items:center;padding:.22rem .6rem;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--border-dark);color:var(--text-muted);font-size:.76rem;font-weight:700}
+  .hero-eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.18em;color:var(--gold-2);text-transform:uppercase;margin:0 0 .55rem}
+  .hero-station{display:inline-flex;align-items:center;gap:.45rem;margin-top:.9rem;padding:.5rem .85rem;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(212,175,55,.55);font-weight:800;font-size:.92rem;color:#fff;backdrop-filter:blur(6px)}
+  .empty-state{border:1.5px dashed rgba(74,222,128,.45);background:linear-gradient(180deg,rgba(34,163,85,.10),rgba(34,163,85,.03));border-radius:1rem;padding:2rem 1.5rem;text-align:center}
+  .empty-state .big{font-size:2rem;line-height:1}
+  .empty-state h3{margin:.6rem 0 .3rem;font-size:1.15rem;color:#bbf7d0}
+  .empty-state p{margin:0;color:var(--text-muted);font-size:.9rem;line-height:1.55}
+  .section-title{margin:.2rem 0 1rem;font-size:1.25rem;display:flex;align-items:center;gap:.6rem}
+  .section-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border-dark),transparent)}
+  .dash-footer{text-align:center;color:#5f6b80;font-size:.78rem;padding:1.6rem 0 .4rem;letter-spacing:.03em}
+  .grid-main{display:grid;grid-template-columns:1fr;gap:1.5rem;align-items:start}
+  @media (min-width:1024px){.grid-main{grid-template-columns:2fr 1fr}.side-col{position:sticky;top:6.2rem}}
+  .badge{font-size:11px;font-weight:800;letter-spacing:.06em;padding:.32rem .65rem;border-radius:999px;border:1px solid;text-transform:uppercase}
+  .badge-red{background:#7f1d1d;color:#fecaca;border-color:#ef4444}
+  .badge-gold{background:#78350f;color:#fde68a;border-color:#f59e0b}
+  .badge-green{background:#14532d;color:#bbf7d0;border-color:#22c55e}
+  .badge-grey{background:#1f2937;color:#d1d5db;border-color:#374151}
+  .feed-card{padding:1.25rem;border-left:5px solid var(--rail-red);transition:transform .15s, box-shadow .15s}
+  .feed-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.45)}
+  .feed-card.assessed{border-left-color:var(--gold)} .feed-card.res{border-left-color:var(--green)}
+  .assess-box{background:rgba(255,255,255,.045);padding:.7rem .85rem;border-radius:.7rem;font-size:.83rem;border:1px solid var(--border-dark);margin-top:.7rem;line-height:1.55}
+  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-bottom:1.5rem}
+  @media (min-width:900px){.stat-grid{grid-template-columns:repeat(4,1fr)}}
+  .stat{background:linear-gradient(180deg,var(--card-2),var(--card-dark));border:1px solid var(--border-dark);border-radius:1rem;padding:1.1rem 1.2rem;display:flex;gap:1rem;align-items:center;transition:transform .15s}
+  .stat:hover{transform:translateY(-2px)}
+  .stat .icon{width:3rem;height:3rem;border-radius:.9rem;display:flex;align-items:center;justify-content:center;font-size:1.35rem;flex:none}
+  .stat b{font-size:1.7rem;display:block;line-height:1.1}
+  .stat span{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+  .panel{padding:1.25rem}
+  .panel h3{margin:0 0 .9rem;font-size:1.02rem;display:flex;align-items:center;gap:.55rem}
+  .panel h3::before{content:"";width:.32rem;height:1.05rem;border-radius:99px;background:linear-gradient(180deg,var(--gold),var(--rail-red))}
+  .modal-backdrop{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(4,5,9,.78);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:60;padding:1rem}
+  .field label{display:block;font-size:.7rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem}
+</style>
+</head>
+<body>
+
+<div id="login-view" class="login-view">
+  <div class="login-shell">
+    <div class="login-hero">
+      <img src="logo.jpg" alt="Indian Railways logo" class="logo" style="width:6.5rem;height:6.5rem;display:block">
+      <h1>Welcome to <span class="text-gold">ODNMS</span></h1>
+      <div class="gold-bar"></div>
+      <p class="sysname">Obstacle Detection &amp; Notification Management System</p>
+      <p class="tagline">Ensuring railway safety through real-time AI monitoring.</p>
+    </div>
+    <div class="login-card">
+      <h2 style="margin:0 0 1.6rem">Staff Login</h2>
+      <div class="field"><label>User ID</label><input id="userId" class="form-input" placeholder="TGSMYS" autocomplete="username"></div>
+      <div class="field" style="margin-top:1.1rem"><label>Password</label>
+        <div style="position:relative"><input id="password" type="password" class="form-input" placeholder="••••••••" style="padding-right:3rem">
+        <button type="button" id="pwToggle" onclick="togglePw()" aria-label="Show or hide password" title="Show / hide password" style="position:absolute;right:.55rem;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--text-muted);cursor:pointer;padding:.35rem;display:flex;align-items:center">
+          <svg id="pwEye" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="pwEyeOff" class="hidden" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.6 10.6 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 4.06-3.94"/><path d="M9.9 4.24A9.5 9.5 0 0 1 12 5c7 0 11 7 11 7a18.6 18.6 0 0 1-2.16 3.19"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button></div>
+      </div>
+      <button onclick="login()" class="btn btn-primary" style="width:100%;margin-top:1.6rem;padding:.95rem;font-size:1rem">Sign In &rarr;</button>
+      <div id="loginError" style="text-align:center;font-size:.9rem;min-height:1.5rem;color:#f87171;margin-top:.6rem"></div>
+    </div>
+  </div>
+</div>
+
+<div id="dashboard-view" class="hidden">
+  <div class="dashboard">
+    <header class="dash-header">
+      <div style="display:flex;align-items:center;gap:.9rem">
+        <img src="logo.jpg" alt="Indian Railways logo" class="logo" style="width:3.4rem;height:3.4rem">
+        <div><h1 style="margin:0;font-size:1.35rem">SmartRail <span class="text-gold">Staff Portal</span></h1>
+        <div id="who" style="margin:.35rem 0 0;display:flex;gap:.45rem;flex-wrap:wrap;align-items:center"></div></div>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button onclick="refreshAll()" class="btn btn-secondary">↻ Refresh</button>
+        <button onclick="logout()" class="btn btn-danger">Logout</button>
+      </div>
+    </header>
+
+    <div class="hero">
+      <div>
+        <p class="hero-eyebrow">Obstacle Detection &amp; Notification &middot; Live Monitoring</p>
+        <h2 id="heroTitle">Track Safety Command Centre</h2>
+        <p id="heroMeta" class="muted" style="margin:.45rem 0 0;color:#cfd6e0;max-width:34rem;line-height:1.55"></p>
+        <div><span id="heroStation" class="hero-station"></span></div>
+      </div>
+      <span class="live-pill"><span class="live-dot"></span> LIVE &middot; auto-refresh 3s</span>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="icon" style="background:rgba(177,31,33,.22);border:1px solid rgba(240,82,82,.5)">⚠️</div><div><b id="statActive">–</b><span class="muted">Active incidents</span></div></div>
+      <div class="stat"><div class="icon" style="background:rgba(34,163,85,.18);border:1px solid rgba(74,222,128,.45)">✓</div><div><b id="statResolved">–</b><span class="muted">Resolved</span></div></div>
+      <div class="stat"><div class="icon" style="background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.45)">🚆</div><div><b id="statTrains">–</b><span class="muted">Trains</span></div></div>
+      <div class="stat"><div class="icon" style="background:rgba(59,130,246,.15);border:1px solid rgba(96,165,250,.45)">📡</div><div><b id="statHealth">–</b><span class="muted">Health alerts (nodes)</span></div></div>
+    </div>
+
+    <div class="grid-main">
+      <section>
+        <h2 class="section-title">🚨 Incidents</h2>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+          <select id="filterStatus" class="form-input" style="max-width:12rem" onchange="refreshAll()"><option value="">All statuses</option><option>New</option><option>Acknowledged</option><option>Assessed</option><option>Resolved</option></select>
+          <input id="filterTrain" class="form-input" style="max-width:12rem" placeholder="Train number" onchange="refreshAll()">
+        </div>
+        <div id="incidentList" style="display:flex;flex-direction:column;gap:1rem"></div>
+      </section>
+
+      <aside class="side-col" style="display:flex;flex-direction:column;gap:1.5rem">
+        <section class="card panel">
+          <h3>Health Alerts — Hardware Status</h3>
+          <div id="healthList" class="muted">Loading…</div>
+          <p class="muted" style="font-size:.85rem;line-height:1.6;margin:1rem 0 0;border-top:1px solid var(--border-dark);padding-top:.8rem">
+            Board: <b style="color:var(--text-light)">Arduino Nano ESP32 · 1 ultrasonic sensor · GSM (SMS + data) · standalone on battery, hosted link</b><br>
+            SMS alerts go to the SS (station number) and the TI (driver number) only — the DOM gets no SMS and sees everything on this website. Camera ML reports to the same hosted server separately. This firmware has no GPS and no buzzer.
+          </p>
+        </section>
+
+        <section class="card panel">
+          <h3>Trains</h3>
+          <div id="trainList" class="muted">Loading…</div>
+          <div id="trainForm" class="hidden" style="margin-top:1rem;display:flex;flex-direction:column;gap:.5rem">
+            <input id="newTrainNo" class="form-input" placeholder="Train number, e.g. 12639">
+            <input id="newTrainName" class="form-input" placeholder="Train name, e.g. Brindavan SF Express">
+            <button onclick="createTrain()" class="btn btn-primary">Add train (DOM only)</button>
+            <p id="trainMsg" class="muted" style="font-size:.85rem"></p>
+          </div>
+        </section>
+
+        <section id="userFormCard" class="card panel hidden">
+          <h3>Create account (DOM only)</h3>
+          <div style="display:flex;flex-direction:column;gap:.5rem">
+            <input id="newName" class="form-input" placeholder="Username, e.g. Mysuru Station Master">
+            <input id="newUserId" class="form-input" placeholder="User ID, e.g. TGSMYS">
+            <input id="newPass" type="password" class="form-input" placeholder="Password">
+            <select id="newDept" class="form-input"><option value="StationMaster">StationMaster (SS)</option><option value="TrafficInspector">TrafficInspector (TI)</option><option value="RailwayAdmin">RailwayAdmin (DOM)</option></select>
+            <input id="newStation" class="form-input" placeholder="Station, e.g. Mysuru (blank for DOM)">
+            <button onclick="createUser()" class="btn btn-primary">Create account</button>
+            <p id="userMsg" class="muted" style="font-size:.85rem"></p>
+          </div>
+        </section>
+      </aside>
+    </div>
+    <p class="dash-footer">SmartRail &middot; ODNMS &mdash; Obstacle Detection &amp; Notification Management System &middot; Ensuring railway safety through real-time monitoring</p>
+  </div>
+</div>
+
+<div id="assessment-modal" class="modal-backdrop hidden">
+  <div class="card" style="width:100%;max-width:32rem;border-radius:1.25rem;overflow:hidden">
+    <div style="padding:1.1rem 1.25rem;border-bottom:1px solid var(--border-dark);display:flex;justify-content:space-between;align-items:center;background:rgba(212,175,55,.07)">
+      <h3 style="margin:0">Incident Assessment</h3><button onclick="closeModal()" style="background:none;border:0;color:var(--text-muted);cursor:pointer;font-size:1.35rem;line-height:1">×</button>
+    </div>
+    <form id="assessment-form" style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem" onsubmit="submitAssessment(event)">
+      <p class="muted" style="margin:0;font-size:.85rem">The ML camera gives a first detection (shown on the incident card) — this assessment is the SS on-site confirmation.</p>
+      <div class="field"><label>Obstacle type</label><select id="assType" class="form-input" onchange="toggleNotify()"><option>Human</option><option>Animal</option><option>Vehicle</option><option>Boulder</option><option>Other</option></select></div>
+      <div class="field"><label>Train number (optional, links the incident to a train)</label><input id="assTrain" class="form-input" placeholder="12639"></div>
+      <div class="field"><label>Casualties</label><input id="assCas" type="number" min="0" value="0" class="form-input"></div>
+      <div class="field"><label>Severity</label><select id="assSev" class="form-input"><option>None</option><option>Minor</option><option>Major</option><option>Fatal</option></select></div>
+      <label id="forestRow" class="hidden"><input id="assForest" type="checkbox"> Notify Forest Department (Animal)</label>
+      <label id="policeRow" class="hidden"><input id="assPolice" type="checkbox"> Notify Police / RPF (Human / Vehicle)</label>
+      <p class="muted" style="font-size:.8rem;margin:0">These flags are recorded on the incident only — they do not send a real message yet.</p>
+      <button class="btn btn-primary" style="justify-content:center;padding:.9rem">Save assessment</button>
+    </form>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem('sr_token') || '';
+let me = null, currentAssessId = null;
+const $ = (id) => document.getElementById(id);
+function togglePw(){ const p=$('password'); const show = p.type==='password'; p.type = show ? 'text' : 'password'; $('pwEye').classList.toggle('hidden', show); $('pwEyeOff').classList.toggle('hidden', !show); }
+function authHeaders(){ return { 'Content-Type':'application/json', 'Authorization':'Bearer '+token }; }
+async function api(path, opts={}){ const r = await fetch(path, { ...opts, headers:{...authHeaders(), ...(opts.headers||{})} }); const d = await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error || ('Request failed: '+r.status)); return d; }
+function fmt(t){ return t ? new Date(t).toLocaleString() : '—'; }
+function toggleNotify(){
+  const v = $('assType').value;
+  $('forestRow').classList.toggle('hidden', v!=='Animal');
+  $('policeRow').classList.toggle('hidden', !(v==='Human'||v==='Vehicle'));
+}
+async function login(){
+  $('loginError').textContent='';
+  try{
+    const r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:$('userId').value.trim(), password:$('password').value})});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error || 'Login failed');
+    token = d.token; me = d.user; localStorage.setItem('sr_token', token);
+    showDashboard();
+  }catch(e){ $('loginError').textContent = e.message; }
+}
+function logout(){ token=''; me=null; localStorage.removeItem('sr_token'); $('dashboard-view').classList.add('hidden'); $('login-view').classList.remove('hidden'); }
+function designationLabel(d){ return d==='SS' ? 'Station Superintendent' : d==='TI' ? 'Traffic Inspector' : d==='DOM' ? 'Divisional Operations Manager' : d; }
+function showDashboard(){
+  $('login-view').classList.add('hidden'); $('dashboard-view').classList.remove('hidden');
+  // Station / name shown ONCE only — as the hero chip below. Header = role + user ID only.
+  $('who').innerHTML = `<span class="role-chip">${me.designation} &middot; ${designationLabel(me.designation)}</span><span class="id-chip">${me.user_id}</span>`;
+  $('heroTitle').textContent = 'Track Safety Command Centre';
+  $('heroMeta').textContent = me.designation==='DOM'
+    ? 'Division-wide view — obstacle alerts, hardware health and trains across all stations, updated in real time.'
+    : me.designation==='TI'
+    ? 'Supervisory view — obstacle alerts, hardware health and trains across your section, updated in real time.'
+    : 'Live obstacle alerts, hardware health and train movement for your station — updated in real time.';
+  $('heroStation').textContent = me.designation==='DOM' ? '🌐 Division-wide · All stations' : me.station ? `📍 ${me.station} Station` : '📍 Section view';
+  $('trainForm').classList.toggle('hidden', me.designation!=='DOM');
+  $('userFormCard').classList.toggle('hidden', me.designation!=='DOM');
+  refreshAll();
+}
+async function refreshAll(){
+  try{
+    const q = new URLSearchParams();
+    if($('filterStatus').value) q.set('status', $('filterStatus').value);
+    if($('filterTrain').value.trim()) q.set('trainNumber', $('filterTrain').value.trim());
+    const [inc, health, trains] = await Promise.all([
+      api('/api/incidents?'+q.toString()), api('/api/health'), api('/api/trains'),
+    ]);
+    const list = inc.incidents || [];
+    $('statActive').textContent = list.filter(i=>i.status!=='Resolved').length;
+    $('statResolved').textContent = list.filter(i=>i.status==='Resolved').length;
+    $('statTrains').textContent = (trains.trains||[]).length;
+    const nodes = health.nodes||[], alerts = health.alerts||[];
+    $('statHealth').textContent = nodes.length || alerts.length;
+    $('incidentList').innerHTML = list.length ? list.map(card).join('') : `<div class="empty-state"><div class="big">✅</div><h3>Track Clear — No Active Obstacles</h3><p>No incidents in your scope right now.<br>Sensors are monitoring the track live — a new detection will appear here instantly.</p></div>`;
+    $('healthList').innerHTML = (nodes.length||alerts.length) ? [...nodes.map(n=>`
+      <div style="padding:.55rem 0;border-bottom:1px solid var(--border-dark)">
+        <b>${n.stationId || n.station || 'Node'}</b> — <span class="${n.deviceOnline?'ok':'bad'}">${n.deviceOnline?'ONLINE':'OFFLINE'}</span><br>
+        <span class="muted" style="font-size:.85rem">Distance: ${n.lastDistanceCm ?? '—'} cm · GSM SMS: ${n.gsmOk?'OK':'—'} · Last seen: ${fmt(n.lastSeenAt)}</span>
+      </div>`), ...alerts.map(a=>`
+      <div style="padding:.55rem 0;border-bottom:1px solid var(--border-dark)">
+        <b>${a.station}</b> — ${a.status} · ${a.message||''}<br>
+        <span class="muted" style="font-size:.85rem">Sensor: ${a.sensorOk?'OK':'—'} · GSM SMS: ${a.gsmOk?'OK':'—'} · Last: ${fmt(a.lastSeenAt)}</span>
+      </div>`)].join('') : '<p class="muted" style="line-height:1.55">⏳ <b style="color:var(--text-light)">Waiting for sensor node…</b><br>The standalone board reports to this hosted server over GSM data — status will appear here once it posts.</p>';
+    $('trainList').innerHTML = (trains.trains||[]).length ? (trains.trains||[]).map(t=>`
+      <div style="display:flex;justify-content:space-between;gap:.5rem;padding:.45rem 0;border-bottom:1px solid var(--border-dark)">
+        <span><b>${t.trainNumber}</b> — ${t.trainName}</span>
+        ${me.designation==='DOM' ? `<button onclick="deleteTrain('${t.id}')" style="background:none;border:0;color:#f87171;cursor:pointer;font-weight:700">Delete</button>` : ''}
+      </div>`).join('') : '<p class="muted">No trains yet.</p>';
+  }catch(e){ if(String(e.message).includes('Login')) logout(); }
+}
+function card(i){
+  const badge = i.status==='Resolved' ? 'badge-green' : i.status==='New' ? 'badge-red' : 'badge-gold';
+  const cls = i.status==='Resolved' ? 'res' : i.status==='Assessed' ? 'assessed' : '';
+  const canEdit = me.designation==='DOM' || me.designation==='SS';
+  const d = i.assessmentDetails || {};
+  return `<div class="card feed-card ${cls}">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div><b style="font-size:1.02rem">${i.trainNumber ? `🚆 Train ${i.trainNumber}${i.trainName ? ' — '+i.trainName : ''}` : `🚨 Obstacle at ${i.nearestStation}`}</b>${i.trainNumber ? ' · '+i.nearestStation : ''}
+      <br><span class="muted" style="font-size:.85rem">${i.distanceCm!=null ? `Distance: ${i.distanceCm} cm` : 'Detected by camera (ML)'} · Reported: ${fmt(i.reportedAt)} · Detections: ${i.detectionCount||1} · SMS: ${i.smsSent?'sent to SS + TI':'not sent'}</span>
+      ${i.mapsUrl ? `<br><a href="${i.mapsUrl}" target="_blank" rel="noopener">📍 Open location on Google Maps</a>` : ''}</div>
+      <span class="badge ${badge}">${i.status.toUpperCase()}</span>
+    </div>
+    ${i.mlClass ? `<div class="assess-box" style="border-color:rgba(96,165,250,.5);background:rgba(59,130,246,.10)">🤖 <b>ML detected: ${i.mlClass}</b>${i.mlConfidence!=null ? ` · Confidence: ${Math.round(i.mlConfidence*100)}%` : ''}<br><span class="muted">Camera model detection — SS assessment below still confirms it.</span></div>` : ''}
+    <div class="assess-box">Assessed: ${i.obstacleType || 'Unknown'} · Casualties: ${d.casualtyCount||0} · Severity: ${d.severity||'None'} · Forest: ${d.forestDeptNotified?'yes':'no'} · Police: ${d.policeNotified?'yes':'no'}
+    <br>Assessed by: ${i.assessedByName || '—'} ${fmt(i.assessedAt)} · Resolved by: ${i.resolvedByName || '—'} ${fmt(i.resolvedAt)}</div>
+    ${canEdit ? `<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem">
+      <button class="btn btn-secondary" onclick="openAssess('${i.id}')">Assess</button>
+      <button class="btn btn-secondary" onclick="act('${i.id}','acknowledge')">Acknowledge</button>
+      <button class="btn btn-green" onclick="act('${i.id}','resolve')">Resolve</button>
+      <button class="btn btn-primary" onclick="act('${i.id}','clear-track')">Clear Track</button>
+      ${me.designation==='DOM' ? `<button class="btn btn-danger" onclick="delIncident('${i.id}')">Delete</button>` : ''}
+    </div>` : '<p class="muted" style="font-size:.85rem;margin:.75rem 0 0">TI view is read-only — the SS for this station clears the track.</p>'}
+  </div>`;
+}
+async function act(id, action){
+  try{ await api(`/api/incidents/${id}/${action}`, {method:'POST', body: action==='clear-track' ? JSON.stringify({}) : undefined}); refreshAll(); }
+  catch(e){ alert(e.message); }
+}
+async function delIncident(id){ if(!confirm('Delete this incident? DOM only.')) return; try{ await api(`/api/incidents/${id}`, {method:'DELETE'}); refreshAll(); }catch(e){ alert(e.message); } }
+function openAssess(id){ currentAssessId=id; toggleNotify(); $('assessment-modal').classList.remove('hidden'); }
+function closeModal(){ $('assessment-modal').classList.add('hidden'); }
+async function submitAssessment(e){
+  e.preventDefault();
+  try{
+    await api(`/api/incidents/${currentAssessId}/assess`, {method:'POST', body: JSON.stringify({
+      obstacleType: $('assType').value, trainNumber: $('assTrain').value.trim() || undefined,
+      casualtyCount: Number($('assCas').value), severity: $('assSev').value,
+      forestDeptNotified: $('assForest').checked, policeNotified: $('assPolice').checked,
+    })});
+    closeModal(); refreshAll();
+  }catch(err){ alert(err.message); }
+}
+async function deviceCmd(kind, on){
+  try{
+    const path = kind==='ping' ? '/api/device/ping' : '/api/device/buzzer';
+    const body = kind==='ping' ? { station: me.station } : { on, station: me.station };
+    const d = await api(path, {method:'POST', body: JSON.stringify(body)});
+    $('deviceMsg').textContent = d.queued ? 'Queued — the Wi-Fi node picks it up within a few seconds.' : (d.simulated ? 'Simulated node.' : 'Sent.');
+    refreshAll();
+  }catch(e){ $('deviceMsg').textContent = e.message; }
+}
+async function createTrain(){
+  try{ await api('/api/trains', {method:'POST', body: JSON.stringify({trainNumber:$('newTrainNo').value.trim(), trainName:$('newTrainName').value.trim()})}); $('trainMsg').textContent='Train added.'; refreshAll(); }
+  catch(e){ $('trainMsg').textContent = e.message; }
+}
+async function deleteTrain(id){ try{ await api(`/api/trains/${id}`, {method:'DELETE'}); refreshAll(); }catch(e){ alert(e.message); } }
+async function createUser(){
+  try{
+    await api('/api/auth/register', {method:'POST', body: JSON.stringify({
+      username:$('newName').value.trim(), user_id:$('newUserId').value.trim(), password:$('newPass').value,
+      department:$('newDept').value, station:$('newStation').value.trim(),
+    })});
+    $('userMsg').textContent='Account created.'; $('newPass').value='';
+  }catch(e){ $('userMsg').textContent = e.message; }
+}
+(async () => { if(token){ try{ const d = await api('/api/auth/me'); me = d.user; showDashboard(); }catch{ logout(); } } })();
+setInterval(() => { if(token && !$('dashboard-view').classList.contains('hidden')) refreshAll(); }, 3000);
+</script>
+</body>
+</html>
